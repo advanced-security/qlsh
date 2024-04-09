@@ -218,7 +218,7 @@ function main {
     codeql_shell_write_qlpack
     codeql_shell_resolve_languages
 
-    if ! command -v rlwraprr &> /dev/null; then
+    if ! command -v rlwrap &> /dev/null; then
         echo "[.] For readline support, install rlwrap" >&2
         codeql_shell_repl
     else
