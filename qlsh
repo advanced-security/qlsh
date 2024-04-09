@@ -177,11 +177,6 @@ function main {
         exit 1
     fi
 
-    if ! command -v rlwrap &> /dev/null; then
-        echo "rlwrap not found" >&2
-        exit 1
-    fi
-
     # if the database is a zip file, not a directory, extract it to a temporary folder
     if [[ -f $1 ]]; then
         _db_path=$(mktemp -d -t codeql-db)
@@ -223,7 +218,12 @@ function main {
     codeql_shell_write_qlpack
     codeql_shell_resolve_languages
 
-    rlwrap bash -c "codeql_shell_repl"
+    if ! command -v rlwraprr &> /dev/null; then
+        echo "[.] For readline support, install rlwrap" >&2
+        codeql_shell_repl
+    else
+        rlwrap bash -c "codeql_shell_repl"
+    fi
 }
 
 main "$@"
