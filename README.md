@@ -98,3 +98,22 @@ Zsh:
 ```zsh
 echo 'alias qlsh="/path/to/qlsh/qlsh"' >> ~/.zshrc
 ```
+
+## License
+
+This project is licensed under the terms of the MIT open source license. Please refer to the [LICENSE](LICENSE) for the full terms.
+
+## Maintainers
+
+See [CODEOWNERS](CODEOWNERS) for the list of maintainers.
+
+## Support
+
+> [!WARNING]
+> This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
+
+See the [SUPPORT](SUPPORT.md) file.
+
+## Background
+
+See the [CHANGELOG](CHANGELOG.md), [CONTRIBUTING](CONTRIBUTING.md), [SECURITY](SECURITY.md), [SUPPORT](SUPPORT.md), [CODE OF CONDUCT](CODE_OF_CONDUCT.md) and [PRIVACY](PRIVACY.md) files for more information.
