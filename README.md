@@ -68,6 +68,7 @@ Commands:
 * `help` - show the help message
 * `show` - show the current query
 * `reset` - clear the current query (you can also use Control-C)
+* `lang` - show the database language
 
 ## Requirements
 

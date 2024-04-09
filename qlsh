@@ -130,6 +130,12 @@ function codeql_shell_repl {
             continue
         fi
 
+        if [[ "${line}" == "lang" ]]; then
+            echo "${_language}"
+            codeql_shell_prompt
+            continue
+        fi
+
         # now write the query to the file
         echo "${line}" >> "${_query_file}"
 
