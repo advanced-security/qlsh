@@ -24,7 +24,7 @@ qlsh
 
 The language of the database is autodetected, and any required language packs are downloaded for you.
 
-If the database is bundled it will be extracted into a temporary directory.
+If the database is bundled it will be extracted into a temporary directory. For large databases, this can take a while. You may prefer to extract the database yourself and pass the path to that.
 
 At the prompt, you can run queries and see the results immediately after a "select " statement is entered.
 
