@@ -1,0 +1,229 @@
+#!/bin/bash
+
+# Interactive shell for running codeql queries
+#
+# Usage:
+#   qlsh <database>
+#
+# Run `qlsh` on its own for more help
+#
+# Requires codeql, bash, jq and (optionally) rlwrap to be installed
+#
+# Copyright (C) 2024, GitHub
+
+set -euo pipefail
+
+function codeql_shell_write_qlpack {
+    cat <<EOF > "${_query_file_directory}"/qlpack.yml
+name: advanced-security/${_language}-repl-query
+version: 0.0.0
+extractor: ${_language}
+groups:
+- ${_language}
+dependencies:
+    codeql/${_language}-all: "*"
+EOF
+}
+
+function codeql_shell_resolve_languages {
+    # check if the language is supported, try to download pack if not
+    if ! codeql resolve languages --format=json | jq ".${_language}" > /dev/null 2>&1; then
+        echo "[.] Language not supported, attempting to install codeql pack(s)" >&2
+        if ! codeql pack install --force "${_query_file_directory}" > /dev/null 2>&1; then
+            echo "[-] Error installing codeql pack(s)" >&2
+            exit 1
+        fi
+    fi
+}
+
+function codeql_shell_cleanup {
+    rm -f "${_bqrs_path}"
+    rm -f "${_query_file}"
+}
+
+function codeql_shell_quit {
+    codeql_shell_cleanup
+    exit 0
+}
+
+function codeql_shell_help {
+    echo "CodeQL Shell, qlsh" >&2
+    echo "" >&2
+    echo "Usage: qlsh <database>" >&2
+    echo "" >&2
+    echo "Interactive shell for running codeql queries." >&2
+    echo "" >&2
+    echo "Every query is built line-by-line and run when a 'select' statement is detected (a line starting with 'select ')." >&2
+    echo "" >&2
+    echo "Bundled (zipped) databases are automatically extracted to a temporary folder." >&2
+    echo "" >&2
+    echo "The language of the database is autodetected, and put into the query." >&2
+    echo "" >&2
+    echo "If the language of the database is not supported, the script will attempt to download the required pack." >&2
+    echo "" >&2
+    echo "Commands:" >&2
+    echo "  quit: exit the shell (or use Ctrl-D)" >&2
+    echo "  help: display this help message" >&2
+    echo "  show: print the current query buffer" >&2
+    echo "  reset: clear the current query buffer (or use Ctrl-C)" >&2
+}
+
+function codeql_shell_prompt {
+    echo -n "${_codeql_shell_prompt}"
+}
+
+function codeql_shell_write_language {
+    echo "import ${_language}" >> "${_query_file}"
+}
+
+function codeql_shell_trunc {
+    truncate -s 0 "${_query_file}"
+}
+
+function codeql_shell_restart {
+    codeql_shell_trunc
+    codeql_shell_write_language
+    _codeql_shell_prompt="codeql> "
+    codeql_shell_prompt
+}
+
+function codeql_shell_cont {
+    _codeql_shell_prompt="... "
+    codeql_shell_prompt
+}
+
+function codeql_shell_restart_sigint {
+    # catch SIGINT
+    tput setaf 1
+    tput sgr0
+
+    echo
+    codeql_shell_restart
+}
+
+function codeql_shell_repl {
+    trap codeql_shell_cleanup EXIT
+    trap codeql_shell_restart_sigint INT
+
+    codeql_shell_restart
+
+    while read -r line; do
+        # handle REPL commands
+        if [[ "${line}" == "quit" ]]; then
+            break
+        fi
+
+        if [[ "${line}" == "help" ]]; then
+            codeql_shell_help
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" == "show" ]]; then
+            cat "${_query_file}"
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" == "reset" ]]; then
+            codeql_shell_restart
+            continue
+        fi
+
+        # now write the query to the file
+        echo "${line}" >> "${_query_file}"
+
+        codeql_shell_regex_select="^select "
+
+        if [[ "${line}" =~ $codeql_shell_regex_select ]]; then
+            if ! codeql query run \
+            --database="${_db_path}" \
+            --output="${_bqrs_path}" \
+            --quiet \
+            -- "${_query_file}"; then
+                codeql_shell_restart
+                continue
+            fi
+
+            if ! codeql bqrs decode \
+            --format=${_out_format} \
+            -- "${_bqrs_path}"; then
+                codeql_shell_restart
+                continue
+            fi
+
+            codeql_shell_restart
+            continue
+        else
+            codeql_shell_cont
+            continue
+        fi
+    done
+}
+
+function main {
+    if [[ $# -ne 1 ]]; then
+        codeql_shell_help
+        exit 1
+    fi
+
+    if ! command -v codeql &> /dev/null; then
+        echo "codeql not found" >&2
+        exit 1
+    fi
+
+    if ! command -v jq &> /dev/null; then
+        echo "jq not found" >&2
+        exit 1
+    fi
+
+    if ! command -v rlwrap &> /dev/null; then
+        echo "rlwrap not found" >&2
+        exit 1
+    fi
+
+    # if the database is a zip file, not a directory, extract it to a temporary folder
+    if [[ -f $1 ]]; then
+        _db_path=$(mktemp -d -t codeql-db)
+        if ! codeql database unbundle "$1" -qqq --target="$_db_path"; then
+            echo "[-] Error extracting database" >&2
+            exit 1
+        fi
+    else
+        _db_path=$1
+    fi
+
+    # find the language in the database
+    _language=$(grep "primaryLanguage:" "$_db_path"/codeql-database.yml | cut -d" " -f2 | tr -d "'\"")
+
+    _bqrs_path=$(mktemp -t bqrs.XXXXXXXXXX)
+    _query_file=$(mktemp -t codeql-query).ql
+    _out_format=text
+    _query_file_directory=$(dirname "${_query_file}")
+
+    export -f codeql_shell_repl
+    export -f codeql_shell_write_language
+    export -f codeql_shell_restart
+    export -f codeql_shell_restart_sigint
+    export -f codeql_shell_cont
+    export -f codeql_shell_prompt
+    export -f codeql_shell_cleanup
+    export -f codeql_shell_help
+    export -f codeql_shell_quit
+    export -f codeql_shell_trunc
+
+    export _db_path
+    export _bqrs_path
+    export _query_file
+    export _out_format
+    export _language
+    export _query_file_directory
+    export _code_shell_prompt
+
+    codeql_shell_write_qlpack
+    codeql_shell_resolve_languages
+
+    rlwrap bash -c "codeql_shell_repl"
+}
+
+main "$@"
