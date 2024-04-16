@@ -27,16 +27,17 @@ EOF
 
 function codeql_shell_resolve_languages {
     # check if the language is supported, try to download pack if not
-    if ! codeql resolve languages --format=json | jq -e ".${_language}" > /dev/null 2>&1; then
-        echo "[.] Language not supported, attempting to install codeql pack(s)" >&2
-        (
-            cd "${_query_file_directory}" || ( echo "Failed to change directory to temporary query directory, exiting" >&2 && exit 1 )
+    (
+        cd "${_query_file_directory}" || ( echo "Failed to change directory to temporary query directory, exiting" >&2 && exit 1 )
+
+        if ! codeql resolve languages --format=json | jq -e ".${_language}" > /dev/null 2>&1; then
+            echo "[.] Language not supported, attempting to install codeql pack(s)" >&2
             if ! codeql pack install --force "${_query_file_directory}" > /dev/null 2>&1; then
                 echo "[-] Error installing codeql pack(s)" >&2
                 exit 1
             fi
-        )
-    fi
+        fi
+    )
 }
 
 function codeql_shell_cleanup {
@@ -181,6 +182,12 @@ function codeql_shell_repl {
             continue
         fi
 
+        if [[ "${line}" == "dir" ]]; then
+            echo "${_query_file_directory}"
+            codeql_shell_prompt
+            continue
+        fi
+
         # now write the query to the file
         echo "${line}" >> "${_query_file}"
 
@@ -242,10 +249,10 @@ function main {
     # find the language in the database
     _language=$(grep "primaryLanguage:" "$_db_path"/codeql-database.yml | cut -d" " -f2 | tr -d "'\"")
 
-    _bqrs_path=$(mktemp -t bqrs.XXXXXXXXXX)
-    _query_file=$(mktemp -t codeql-query).ql
+    _query_file_directory=$(mktemp -d -t codeql-query)
+    _bqrs_path=$(mktemp -t bqrs.XXXXXXXXXX --tmpdir="${_query_file_directory}")
+    _query_file=$(mktemp -t codeql-query --tmpdir="${_query_file_directory}").ql
     _out_format=text
-    _query_file_directory=$(dirname "${_query_file}")
 
     export -f codeql_shell_repl
     export -f codeql_shell_write_language
