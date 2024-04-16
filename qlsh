@@ -160,7 +160,7 @@ function codeql_shell_repl {
         codeql_shell_regex_help="^help "
 
         if [[ "${line}" =~ $codeql_shell_regex_help ]]; then
-            codeql_shell_help_lookup "$(echo "${line}" | cut -d " " -f2)"
+            codeql_shell_help_lookup "$(echo "${line}" | cut -d " " -f2-)"
             codeql_shell_prompt
             continue
         fi
@@ -225,13 +225,23 @@ function main {
         exit 1
     fi
 
+    if [[ $1 == "--help" || $1 == "-h" ]]; then
+        codeql_shell_help
+        exit 0
+    fi
+
     if ! command -v codeql &> /dev/null; then
-        echo "codeql not found" >&2
+        echo "[-] codeql not found" >&2
         exit 1
     fi
 
     if ! command -v jq &> /dev/null; then
-        echo "jq not found" >&2
+        echo "[-] jq not found" >&2
+        exit 1
+    fi
+
+    if [[ ! -d $1 && ! -f $1 ]]; then
+        echo "[-] Database not found" >&2
         exit 1
     fi
 
