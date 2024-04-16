@@ -27,12 +27,15 @@ EOF
 
 function codeql_shell_resolve_languages {
     # check if the language is supported, try to download pack if not
-    if ! codeql resolve languages --format=json | jq ".${_language}" > /dev/null 2>&1; then
+    if ! codeql resolve languages --format=json | jq -e ".${_language}" > /dev/null 2>&1; then
         echo "[.] Language not supported, attempting to install codeql pack(s)" >&2
-        if ! codeql pack install --force "${_query_file_directory}" > /dev/null 2>&1; then
-            echo "[-] Error installing codeql pack(s)" >&2
-            exit 1
-        fi
+        (
+            cd "${_query_file_directory}" || ( echo "Failed to change directory to temporary query directory, exiting" >&2 && exit 1 )
+            if ! codeql pack install --force "${_query_file_directory}" > /dev/null 2>&1; then
+                echo "[-] Error installing codeql pack(s)" >&2
+                exit 1
+            fi
+        )
     fi
 }
 
@@ -64,6 +67,7 @@ function codeql_shell_help {
     echo "Commands:" >&2
     echo "  quit: exit the shell (or use Ctrl-D)" >&2
     echo "  help: display this help message" >&2
+    echo "  help <search term>: search CodeQL online library for provided terms" >&2
     echo "  show: print the current query buffer" >&2
     echo "  reset: clear the current query buffer (or use Ctrl-C)" >&2
 }
