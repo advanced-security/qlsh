@@ -66,6 +66,7 @@ Commands:
 
 * `quit` - exit the shell (you can also use Control-D)
 * `help` - show the help message
+* `help <search term>` - search CodeQL online library for provided terms
 * `show` - show the current query
 * `reset` - clear the current query (you can also use Control-C)
 * `lang` - show the database language
