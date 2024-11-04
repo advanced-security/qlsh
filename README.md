@@ -1,13 +1,13 @@
 # qlsh - a CodeQL REPL shell
 
-> [!WARNING]
+> [!NOTE]
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
 qlsh is a simple shell for running [CodeQL](https://codeql.github.com/) queries against a database.
 
 It lets you write and run queries interactively in a REPL, and see the results immediately.
 
-> [!WARNING]
+> [!NOTE]
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
 ## Usage
@@ -111,7 +111,7 @@ See [CODEOWNERS](CODEOWNERS) for the list of maintainers.
 
 ## Support
 
-> [!WARNING]
+> [!NOTE]
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
 See the [SUPPORT](SUPPORT.md) file.
