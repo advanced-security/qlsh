@@ -105,6 +105,8 @@ echo 'alias qlsh="/path/to/qlsh/qlsh"' >> ~/.zshrc
 
 This project is licensed under the terms of the MIT open source license. Please refer to the [LICENSE](LICENSE) for the full terms.
 
+This tool uses the `codeql` binary, for which you must separately accept the [license to use](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md).
+
 ## Maintainers
 
 See [CODEOWNERS](CODEOWNERS) for the list of maintainers.
@@ -115,6 +117,10 @@ See [CODEOWNERS](CODEOWNERS) for the list of maintainers.
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
 See the [SUPPORT](SUPPORT.md) file.
+
+## Privacy
+
+This tool uses the `codeql` binary. That tool can communicate with GitHub servers to perform its functions - in this case, to download required language packs. See [PRIVACY](PRIVACY.md) for a link to the GitHub General Privacy Statement.
 
 ## Background
 
