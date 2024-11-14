@@ -22,7 +22,7 @@ Get help with:
 qlsh
 ```
 
-The language of the database is autodetected, and any required language packs are downloaded for you.
+The language of the database is autodetected, and any required language packs are downloaded for you from GitHub.com servers.
 
 If the database is bundled it will be extracted into a temporary directory. For large databases, this can take a while. You may prefer to extract the database yourself and pass the path to that.
 
@@ -66,7 +66,7 @@ Commands:
 
 * `quit` - exit the shell (you can also use Control-D)
 * `help` - show the help message
-* `help <search term>` - search CodeQL online library for provided terms
+* `help <search term>` - search CodeQL online library for provided terms, backed by AddSearch (see [Privacy](#privacy))
 * `show` - show the current query
 * `reset` - clear the current query (you can also use Control-C)
 * `lang` - show the database language
@@ -121,6 +121,8 @@ See the [SUPPORT](SUPPORT.md) file.
 ## Privacy
 
 This tool uses the `codeql` binary. That tool can communicate with GitHub servers to perform its functions - in this case, to download required language packs. See [PRIVACY](PRIVACY.md) for a link to the GitHub General Privacy Statement.
+
+The `help <keyword>` function uses the same service as used by the [CodeQL docs website](https://codeql.github.com/docs/), which is hosted by [AddSearch](https://www.addsearch.com/) and subject to their [privacy notice](https://www.addsearch.com/privacy/).
 
 ## Background
 
