@@ -74,13 +74,21 @@ Commands:
 
 ## Requirements
 
-* CodeQL CLI: [binary release](https://github.com/github/codeql-cli-binaries/releases) or [Actions bundle](https://github.com/github/codeql-action/releases)
+* CodeQL CLI
+  * You can get this by one of:
+    * The [CodeQL CLI](https://cli.github.com/) with the CodeQL CLI extension installed with `gh extensions install github/gh-codeql`
+    * Install on MacOS with `brew install codeql`
+    * [binary release](https://github.com/github/codeql-cli-binaries/releases)
+    * [Actions bundle](https://github.com/github/codeql-action/releases)
 * `bash`
 * `jq`
-* `rlwrap` (optional, for readline support)
-* `curl` (optional, for online help)
-* `lynx` (optional, for showing online help)
 * a CodeQL database, for a codebase you are [licensed to analyze](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md)
+
+Optional:
+
+* `rlwrap` for readline support
+* `curl` for online help
+* `lynx` for showing online help
 
 ## Installation
 
