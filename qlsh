@@ -236,11 +236,17 @@ function main {
 
     if ! command -v codeql &> /dev/null; then
         echo "[-] codeql not found" >&2
+        echo "[.] Cross platform, install with 'gh codeql' after installing the GitHub CLI and the CodeQL extension for that" >&2
+        echo "[.] On macOS, install with 'brew install codeql'" >&2
+        echo "[.] You can also get the CodeQL release binary at https://" >&2
         exit 1
     fi
 
     if ! command -v jq &> /dev/null; then
         echo "[-] jq not found" >&2
+        echo "[.] On Ubuntu/Debian, install with 'sudo apt install jq'" >&2
+        echo "[.] On Fedora/RHEL, install with 'sudo dnf install jq'" >&2
+        echo "[.] On macOS, install with 'brew install jq'" >&2
         exit 1
     fi
 
