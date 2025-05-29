@@ -75,6 +75,7 @@ function codeql_shell_help {
     echo "  lang: print the language of the database" >&2
     echo "  dir: print the directory of the query file" >&2
     echo "  reset: clear the current query buffer (or use Ctrl-C)" >&2
+    echo "  unlock: remove the .lock file from the current database's default/cache directory" >&2
 }
 
 function codeql_shell_help_lookup {
@@ -188,6 +189,18 @@ function codeql_shell_repl {
 
         if [[ "${line}" == "dir" ]]; then
             echo "${_query_file_directory}"
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" == "unlock" ]]; then
+            lock_file="${_db_path}/db-${_language}/default/cache/.lock"
+            if [[ -f "$lock_file" ]]; then
+                rm -f "$lock_file"
+                echo "[+] Lock file removed: $lock_file"
+            else
+                echo "[.] No lock file found at $lock_file"
+            fi
             codeql_shell_prompt
             continue
         fi
