@@ -7,7 +7,7 @@
 #
 # Run `qlsh` on its own for more help
 #
-# Requires codeql, bash, jq and (optionally) rlwrap and curl to be installed
+# Requires codeql, bash, jq and (optionally) rlwrap, curl and lynx to be installed
 #
 # Copyright (C) 2024, GitHub
 
@@ -29,6 +29,8 @@ function codeql_shell_resolve_languages {
     # check if the language is supported, try to download pack if not
     (
         cd "${_query_file_directory}" || ( echo "Failed to change directory to temporary query directory, exiting" >&2 && exit 1 )
+
+        codeql pack install --quiet "${_query_file_directory}" > /dev/null 2>&1 || ( echo "[-] Error installing codeql pack(s)" >&2 && exit 1 )
 
         if ! codeql resolve languages --format=json | jq -e ".${_language}" > /dev/null 2>&1; then
             echo "[.] Language not supported, attempting to install codeql pack(s)" >&2
@@ -70,6 +72,8 @@ function codeql_shell_help {
     echo "  help: display this help message" >&2
     echo "  help <search term>: search CodeQL online library for provided terms" >&2
     echo "  show: print the current query buffer" >&2
+    echo "  lang: print the language of the database" >&2
+    echo "  dir: print the directory of the query file" >&2
     echo "  reset: clear the current query buffer (or use Ctrl-C)" >&2
 }
 

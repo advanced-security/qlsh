@@ -70,13 +70,16 @@ Commands:
 * `show` - show the current query
 * `reset` - clear the current query (you can also use Control-C)
 * `lang` - show the database language
+* `dir` - show the current query's temporary directory
 
 ## Requirements
 
 * CodeQL CLI: [binary release](https://github.com/github/codeql-cli-binaries/releases) or [Actions bundle](https://github.com/github/codeql-action/releases)
-* bash
-* jq
-* rlwrap (optional, for readline support)
+* `bash`
+* `jq`
+* `rlwrap` (optional, for readline support)
+* `curl` (optional, for online help)
+* `lynx` (optional, for showing online help)
 * a CodeQL database, for a codebase you are [licensed to analyze](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md)
 
 ## Installation
