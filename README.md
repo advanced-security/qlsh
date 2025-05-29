@@ -71,6 +71,7 @@ Commands:
 * `reset` - clear the current query (you can also use Control-C)
 * `lang` - show the database language
 * `dir` - show the current query's temporary directory
+* `unlock` - unlock the database, if a `.lock` file is present, by deleting it
 
 ## Requirements
 
