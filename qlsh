@@ -99,7 +99,8 @@ function codeql_shell_help {
     echo "  unlock: remove the .lock file from the current database's default/cache directory" >&2
     echo "  set ram <amount>: set the amount of RAM in MB to use for CodeQL queries (default is all available RAM minus 1GB)" >&2
     echo "  set cores <number>: set the number of CPU cores to use for CodeQL queries (default is all available cores minus one)" >&2
-    echo "  set: print the current RAM and cores settings" >&2
+    echo "  set paged <on|off>: set paging of output on or off" >&2
+    echo "  set: print the current RAM, cores and paging settings" >&2
     echo "" >&2
 }
 
