@@ -273,7 +273,7 @@ function codeql_shell_repl {
                 _codeql_ram="$value"
                 echo "[+] RAM set to $_codeql_ram"
             else
-                echo "[-] Please provide a value, e.g. 'set ram 8000M'"
+                echo "[-] Please provide a value, e.g. 'set ram 8000' (in MB)"
             fi
             codeql_shell_prompt
             continue
