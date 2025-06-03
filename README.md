@@ -77,6 +77,12 @@ Commands:
   * `set cores <value>` - set the number of CPU cores to use for the query (default is one less than the number of available cores, denoted by `-1`)
   * `set paged <value>` - set the paging mode for the query, either `on` or `off` (default is `on`)
 * `set` - show the current variables in the query
+* `queries` - list all queries (shows current, deleted, and available queries)
+* `query <number>` - switch to a specific query by number
+* `save [<number>] <path>` - save a query (current or by number) to a given file path
+* `edit [<number>]` - edit a query (current or by number) in your default editor (or vim if unset)
+* `delete [<number>]` - delete a query by number (or the current query if no number is given)
+* `run` - run the current query (useful for running a query that has been edited)
 
 ## Requirements
 
