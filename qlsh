@@ -101,6 +101,12 @@ function codeql_shell_help {
     echo "  set cores <number>: set the number of CPU cores to use for CodeQL queries (default is all available cores minus one)" >&2
     echo "  set paged <on|off>: set paging of output on or off" >&2
     echo "  set: print the current RAM, cores and paging settings" >&2
+    echo "  queries: list all queries" >&2
+    echo "  query <number>: switch to a specific query by number" >&2
+    echo "  save [<number>] <path>: save a query to a given file path" >&2
+    echo "  edit [<number>]: edit a query in the default editor, or vim if one is not set" >&2
+    echo "  delete [<number>]: delete a specific query by number (or the current query)" >&2
+    echo "  run: run the current query" >&2
     echo "" >&2
 }
 
@@ -161,9 +167,123 @@ function codeql_shell_trunc {
     truncate -s 0 "${_query_file}"
 }
 
+# Array to store all query files
+_query_files=()
+_current_query_index=0
+
+function codeql_shell_new_query_file {
+    local new_query_file
+    new_query_file=$(mktemp -t codeql-query --tmpdir="${_query_file_directory}").ql
+    echo "import ${_language}" > "$new_query_file"
+    _query_files+=("$new_query_file")
+    _current_query_index=$((${#_query_files[@]} - 1))
+    _query_file="$new_query_file"
+}
+
+function codeql_shell_switch_query {
+    local idx=$1
+    if [[ $idx =~ ^[0-9]+$ ]] && (( idx >= 0 && idx < ${#_query_files[@]} )); then
+        # check that the file exists
+        if [[ -z "${_query_files[$idx]}" || ! -f "${_query_files[$idx]}" ]]; then
+            echo "[-] Query file for index $idx does not exist"
+            codeql_shell_prompt
+            return
+        fi
+
+        _current_query_index=$idx
+        _query_file="${_query_files[$idx]}"
+        echo "[+] Switched to query #$idx"
+        cat "$_query_file"
+        codeql_shell_cont
+    else
+        echo "[-] Invalid query index: $idx"
+        codeql_shell_prompt
+    fi
+}
+
+function codeql_shell_save_query {
+    local idx=$1
+    local path=$2
+    if [[ $idx =~ ^[0-9]+$ ]] && (( idx >= 0 && idx < ${#_query_files[@]} )); then
+        # check that the file exists
+        if [[ -z "${_query_files[$idx]}" || ! -f "${_query_files[$idx]}" ]]; then
+            echo "[-] Query file for index $idx does not exist"
+            return
+        fi
+
+        cp "${_query_files[$idx]}" "$path"
+        echo "[+] Query #$idx saved to $path"
+    else
+        echo "[-] Invalid query index: $idx"
+    fi
+}
+
+function codeql_shell_edit_query {
+    local idx=$1
+    local editor=${EDITOR:-${VISUAL:-vim}}
+    if [[ $idx =~ ^[0-9]+$ ]] && (( idx >= 0 && idx < ${#_query_files[@]} )); then
+        # check that the file exists
+        if [[ -z "${_query_files[$idx]}" || ! -f "${_query_files[$idx]}" ]]; then
+            echo "[-] Query file for index $idx does not exist"
+            return
+        fi
+
+        "$editor" "${_query_files[$idx]}"
+        echo "[+] Edited query #$idx"
+    else
+        echo "[-] Invalid query index: $idx"
+    fi
+}
+
+function codeql_shell_list_queries {
+    for i in "${!_query_files[@]}"; do
+        if [[ $i -eq $_current_query_index ]]; then
+            echo "* $i: ${_query_files[$i]} (current)"
+        else
+            echo -n "  $i: ${_query_files[$i]}"
+            if [[ -z "${_query_files[$i]}" || ! -f "${_query_files[$i]}" ]]; then
+                echo " (deleted)"
+            else
+                echo ""
+            fi
+        fi
+    done
+}
+
+function codeql_shell_delete_query {
+    local idx=$1
+    if [[ $idx =~ ^[0-9]+$ ]] && (( idx >= 0 && idx < ${#_query_files[@]} )); then
+        if [[ -n "${_query_files[$idx]}" && -f "${_query_files[$idx]}" ]]; then
+            rm -f "${_query_files[$idx]}"
+        else
+            echo "[-] Query #$idx file not found"
+        fi
+        _query_files[idx]=""
+        echo "[+] Deleted query #$idx"
+        # If current query was deleted, move to next available, or previous, or create new
+        if [[ $_current_query_index -eq $idx ]]; then
+            local found=0
+            for i in "${!_query_files[@]}"; do
+                if [[ -n "${_query_files[$i]}" ]]; then
+                    _current_query_index=$i
+                    _query_file="${_query_files[$i]}"
+                    found=1
+                    echo "[+] Switched to query #$i"
+                    break
+                fi
+            done
+            if [[ $found -eq 0 ]]; then
+                codeql_shell_new_query_file
+                echo "[+] All queries deleted, created a new blank query."
+            fi
+        fi
+    else
+        echo "[-] Invalid query index: $idx"
+    fi
+}
+
 function codeql_shell_restart {
-    codeql_shell_trunc
-    codeql_shell_write_language
+    codeql_shell_new_query_file
     _codeql_shell_prompt="codeql> "
     codeql_shell_prompt
 }
@@ -306,6 +426,74 @@ function codeql_shell_repl {
             continue
         fi
 
+        if [[ "${line}" == "queries" ]]; then
+            codeql_shell_list_queries
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" =~ ^query\ ([0-9]+)$ ]]; then
+            idx="${BASH_REMATCH[1]}"
+            codeql_shell_switch_query "$idx"
+            continue
+        fi
+
+        if [[ "${line}" =~ ^save(\ ([0-9]+))?\ (.+)$ ]]; then
+            idx="${BASH_REMATCH[2]:-$_current_query_index}"
+            path="${BASH_REMATCH[3]}"
+            codeql_shell_save_query "$idx" "$path"
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" =~ ^edit(\ ([0-9]+))?$ ]]; then
+            idx="${BASH_REMATCH[2]:-$_current_query_index}"
+            codeql_shell_edit_query "$idx"
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" =~ ^delete(\ ([0-9]+))?$ ]]; then
+            idx="${BASH_REMATCH[2]:-$_current_query_index}"
+            codeql_shell_delete_query "$idx"
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" == "run" ]]; then
+            if ! codeql query run \
+            --database="${_db_path}" \
+            --output="${_bqrs_path}" \
+            --quiet \
+            --threads="${_codeql_cores}" \
+            --ram="${_codeql_ram}" \
+            -- "${_query_file}"; then
+                codeql_shell_restart
+                continue
+            fi
+
+            if [[ "on" == "${_codeql_shell_paged}" ]]; then
+                if ! codeql bqrs decode \
+                --format=${_out_format} \
+                -J="-Xmx${_codeql_ram}m" \
+                -- "${_bqrs_path}" | less; then
+                    codeql_shell_restart
+                    continue
+                fi
+            else
+                if ! codeql bqrs decode \
+                --format=${_out_format} \
+                -J="-Xmx${_codeql_ram}m" \
+                -- "${_bqrs_path}"; then
+                    codeql_shell_restart
+                    continue
+                fi
+            fi
+
+            codeql_shell_restart
+            continue
+        fi
+
         # now write the query to the file
         echo "${line}" >> "${_query_file}"
 
@@ -412,6 +600,12 @@ function main {
     export -f codeql_shell_help_lookup
     export -f codeql_shell_quit
     export -f codeql_shell_trunc
+    export -f codeql_shell_new_query_file
+    export -f codeql_shell_switch_query
+    export -f codeql_shell_save_query
+    export -f codeql_shell_edit_query
+    export -f codeql_shell_list_queries
+    export -f codeql_shell_delete_query
 
     export _db_path
     export _bqrs_path
@@ -432,7 +626,7 @@ function main {
         echo "[.] For readline support, install rlwrap" >&2
         codeql_shell_repl
     else
-        rlwrap bash -c "codeql_shell_repl"
+        rlwrap --always-readline --no-warnings bash -c "codeql_shell_repl"
     fi
 }
 
