@@ -106,9 +106,16 @@ function codeql_shell_help {
 function codeql_shell_help_lookup {
     # lookup help in CodeQL docs for a specific command
     # search details taken from https://codeql.github.com/codeql-standard-libraries/search.html
+
+    if [[ -z "$1" ]]; then
+        echo "[-] Please provide a search term, e.g. 'help <search term>'" >&2
+        return
+    fi
+
+    # escape the search term for use in a URL
     search="$(echo "$1" | jq --slurp --raw-input --raw-output @uri)"
 
-    codeql_search_cdn_url="https://s7.searchcdn.com/93b4d287e2fc079a4089412b669785d5/${search}/0/1166/?s=1713199271142&categories=2x${_language}&resultCount=10"
+    codeql_search_cdn_url="https://s11.searchcdn.com/93b4d287e2fc079a4089412b669785d5/${search}/0/1380/?s=1748954834507&categories=2x${_language}"
 
     if command -v curl &> /dev/null; then
         result_url=$(curl -s "${codeql_search_cdn_url}" | \
@@ -126,7 +133,12 @@ function codeql_shell_help_lookup {
 
         # open with text browser if available
         if command -v lynx &> /dev/null; then
-            lynx -dump "${result_url}"
+            if [[ "on" == "${_codeql_shell_paged}" ]]; then
+                lynx -dump "${result_url}"  | less
+            else
+                lynx -dump "${result_url}"
+            fi
+
         else
             echo "Online help: ${result_url}"
         fi
