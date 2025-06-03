@@ -13,6 +13,27 @@
 
 set -euo pipefail
 
+function codeql_shell_set_ram {
+    # set the initial amount of RAM to use for CodeQL queries
+    # default is all of the RAM on the system, minus 1GB
+    if command -v free &> /dev/null; then
+        # get total RAM in bytes
+        total_ram=$(free -b | awk '/^Mem:/{print $2}')
+        # set _codeql_ram to 1GB less than total RAM
+        total_ram_mb=$(( ( total_ram / ( 1024  * 1024 ) ) - 1024))
+        _codeql_ram="${total_ram_mb}"
+    elif command -v sysctl &> /dev/null; then
+        # get total RAM in bytes on macOS
+        total_ram=$(sysctl -n hw.memsize)
+        # set _codeql_ram to 1GB less than total RAM
+        total_ram_mb=$(( ( total_ram / ( 1024  * 1024 ) ) - 1024))
+        _codeql_ram="${total_ram_mb}"
+    else
+        echo "[-] free or sysctl command not found, using default RAM setting" >&2
+        _codeql_ram=7168  # fallback to 7GB if neither command is available
+    fi
+}
+
 function codeql_shell_write_qlpack {
     cat <<EOF > "${_query_file_directory}"/qlpack.yml
 name: advanced-security/${_language}-repl-query
@@ -76,6 +97,10 @@ function codeql_shell_help {
     echo "  dir: print the directory of the query file" >&2
     echo "  reset: clear the current query buffer (or use Ctrl-C)" >&2
     echo "  unlock: remove the .lock file from the current database's default/cache directory" >&2
+    echo "  set ram <amount>: set the amount of RAM in MB to use for CodeQL queries (default is all available RAM minus 1GB)" >&2
+    echo "  set cores <number>: set the number of CPU cores to use for CodeQL queries (default is all available cores minus one)" >&2
+    echo "  set: print the current RAM and cores settings" >&2
+    echo "" >&2
 }
 
 function codeql_shell_help_lookup {
@@ -187,6 +212,14 @@ function codeql_shell_repl {
             continue
         fi
 
+        if [[ "${line}" == "set" ]]; then
+            echo "RAM: ${_codeql_ram} MB / $(( _codeql_ram / 1024 )) GB"
+            echo "Cores: ${_codeql_cores}"
+            echo "Output paging with 'less': ${_codeql_shell_paged}"
+            codeql_shell_prompt
+            continue
+        fi
+
         if [[ "${line}" == "dir" ]]; then
             echo "${_query_file_directory}"
             codeql_shell_prompt
@@ -205,6 +238,45 @@ function codeql_shell_repl {
             continue
         fi
 
+        if [[ "${line}" =~ ^set\ ram\  ]]; then
+            value="${line#set ram }"
+            if [[ -n "$value" ]]; then
+                _codeql_ram="$value"
+                echo "[+] RAM set to $_codeql_ram"
+            else
+                echo "[-] Please provide a value, e.g. 'set ram 8000M'"
+            fi
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" =~ ^set\ cores\  ]]; then
+            value="${line#set cores }"
+            if [[ -n "$value" ]]; then
+                _codeql_cores="$value"
+                echo "[+] Cores set to $_codeql_cores"
+            else
+                echo "[-] Please provide a value, e.g. 'set cores 4'"
+            fi
+            codeql_shell_prompt
+            continue
+        fi
+
+        if [[ "${line}" =~ ^set\ paged\  ]]; then
+            value="${line#set paged }"
+            if [[ "$value" == "on" ]]; then
+                _codeql_shell_paged='on'
+                echo "[+] Output paging enabled"
+            elif [[ "$value" == "off" ]]; then
+                _codeql_shell_paged='off'
+                echo "[+] Output paging disabled"
+            else
+                echo "[-] Please provide a value, either 'on' or 'off'"
+            fi
+            codeql_shell_prompt
+            continue
+        fi
+
         # now write the query to the file
         echo "${line}" >> "${_query_file}"
 
@@ -215,16 +287,29 @@ function codeql_shell_repl {
             --database="${_db_path}" \
             --output="${_bqrs_path}" \
             --quiet \
+            --threads="${_codeql_cores}" \
+            --ram="${_codeql_ram}" \
             -- "${_query_file}"; then
                 codeql_shell_restart
                 continue
             fi
 
-            if ! codeql bqrs decode \
-            --format=${_out_format} \
-            -- "${_bqrs_path}"; then
-                codeql_shell_restart
-                continue
+            if [[ "on" == "${_codeql_shell_paged}" ]]; then
+                if ! codeql bqrs decode \
+                --format=${_out_format} \
+                -J="-Xmx${_codeql_ram}m" \
+                -- "${_bqrs_path}" | less; then
+                    codeql_shell_restart
+                    continue
+                fi
+            else
+                if ! codeql bqrs decode \
+                --format=${_out_format} \
+                -J="-Xmx${_codeql_ram}m" \
+                -- "${_bqrs_path}"; then
+                    codeql_shell_restart
+                    continue
+                fi
             fi
 
             codeql_shell_restart
@@ -306,7 +391,11 @@ function main {
     export _language
     export _query_file_directory
     export _code_shell_prompt
+    export _codeql_cores='-1'   # by default, use all available cores except one
+    export _codeql_ram
+    export _codeql_shell_paged='off'  # by default, do not use less for output paging
 
+    codeql_shell_set_ram
     codeql_shell_write_qlpack
     codeql_shell_resolve_languages
 
