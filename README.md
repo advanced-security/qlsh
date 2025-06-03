@@ -75,7 +75,7 @@ Commands:
 * `set <key> <value>` - set a variable in the current query
   * `set ram <value>` - set the amount of RAM to use for the query, in megabytes (default is 1GB less than system RAM, if it can be determined, or 7168MB if not)
   * `set cores <value>` - set the number of CPU cores to use for the query (default is one less than the number of available cores, denoted by `-1`)
-  * `set paging <value>` - set the paging mode for the query, either `on` or `off` (default is `on`)
+  * `set paged <value>` - set the paging mode for the query, either `on` or `off` (default is `on`)
 * `set` - show the current variables in the query
 
 ## Requirements
