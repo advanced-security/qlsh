@@ -188,7 +188,23 @@ function codeql_shell_repl {
 
     codeql_shell_restart
 
+    buffered_line=""
+
     while read -r line; do
+        if [[ -n "${buffered_line}" ]]; then
+            # if we have a buffered line, append the current line to it
+            line="${buffered_line}${line}"
+            buffered_line=""
+        fi
+
+        # if the line ends in a backslash, it will be continued. Buffer it, and continue
+        if [[ "${line}" =~ \\$ ]]; then
+            # remove the backslash and continue to the next line
+            buffered_line="${line%\\}"
+            codeql_shell_cont
+            continue
+        fi
+
         # handle REPL commands
         if [[ "${line}" == "quit" ]]; then
             break
